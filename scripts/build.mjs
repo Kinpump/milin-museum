@@ -1,0 +1,13 @@
+import { build } from 'esbuild';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { Script } from 'node:vm';
+const result = await build({entryPoints:['src/app.ts'],bundle:true,write:false,format:'iife',target:'es2022',minify:false});
+const css = await readFile('src/style.css','utf8');
+const template = await readFile('src/index.html','utf8');
+await mkdir('outputs',{recursive:true});
+const html=template.replace('/* APP_CSS */',()=>css).replace('/* APP_JS */',()=>result.outputFiles[0].text.replaceAll('</script','<\\/script'));
+const inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+if(!inline)throw new Error('Missing app script');
+new Script(inline,{filename:'米琳博物馆.html:inline-script'});
+await writeFile('outputs/米琳博物馆.html',html);
+console.log('Built outputs/米琳博物馆.html (self-contained, no network dependencies)');
